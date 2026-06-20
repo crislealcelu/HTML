@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alke Wallet - Historial</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="menu.html"><i class="bi bi-wallet2"></i> <span class="fw-bold">Alke Wallet</span></a>
+            <div><span id="user-name">Cris Leal</span> <button onclick="logout()" class="btn btn-sm btn-outline-danger ms-2">Salir</button></div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <h2 class="mb-4">Historial de Movimientos</h2>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Total Depositado</strong><h4 id="total-deposits" class="text-success">$0</h4></div></div></div>
+            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Total Enviado</strong><h4 id="total-sent" class="text-danger">$0</h4></div></div></div>
+            <div class="col-md-4"><div class="card"><div class="card-body"><strong>Total Recibido</strong><h4 id="total-received" class="text-info">$0</h4></div></div></div>
+        </div>
+
+        <div class="mb-3">
+            <button class="btn btn-sm btn-primary filter-btn active" data-filter="all">Todos</button>
+            <button class="btn btn-sm btn-outline-success filter-btn" data-filter="deposit">Depósitos</button>
+            <button class="btn btn-sm btn-outline-danger filter-btn" data-filter="sent">Enviados</button>
+            <button class="btn btn-sm btn-outline-info filter-btn" data-filter="receive">Recibidos</button>
+            <input type="text" id="tx-search" class="form-control form-control-sm d-inline-block ms-3" placeholder="Buscar..." style="width:200px">
+        </div>
+
+        <table class="table table-hover">
+            <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Contacto</th><th class="text-end">Monto</th></tr></thead>
+            <tbody id="tx-body"></tbody>
+        </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        protectPage();
+        let allTx = [];
+
+        $(document).ready(function(){
+            $('#user-name').text(getCurrentUser());
+            allTx = getTransactions();
+            renderTable(allTx);
+            updateSummary();
+
+            $('.filter-btn').click(function(){
+                $('.filter-btn').removeClass('active btn-success btn-danger btn-info');
+                $(this).addClass('active');
+                if($(this).data('filter')==='deposit') $(this).addClass('btn-success');
+                if($(this).data('filter')==='sent') $(this).addClass('btn-danger');
+                if($(this).data('filter')==='receive') $(this).addClass('btn-info');
+                applyFilter();
+            });
+
+            $('#tx-search').on('keyup', applyFilter);
+        });
+
+        function updateSummary(){
+            let d=0,s=0,r=0;
+            allTx.forEach(tx => {
+                if(tx.type==='deposit') d+=tx.amount;
+                if(tx.type==='sent') s+=tx.amount;
+                if(tx.type==='receive') r+=tx.amount;
+            });
+            $('#total-deposits').text(formatCurrency(d));
+            $('#total-sent').text(formatCurrency(s));
+            $('#total-received').text(formatCurrency(r));
+        }
+
+        function renderTable(txs){
+            const tbody = $('#tx-body'); tbody.empty();
+            if(txs.length===0){ tbody.html('<tr><td colspan="5" class="text-center text-muted">Sin transacciones</td></tr>'); return; }
+            txs.forEach(tx => {
+                const sign = (tx.type==='sent') ? '-' : '+';
+                const cls = (tx.type==='sent') ? 'text-danger' : 'text-success';
+                tbody.append(`<tr><td>${formatDate(tx.date)}</td><td>${getTransactionBadge(tx.type)}</td><td>${tx.description}</td><td>${tx.fromTo||''}</td><td class="text-end"><span class="${cls} fw-bold">${sign}${formatCurrency(tx.amount)}</span></td></tr>`);
+            });
+        }
+
+        function applyFilter(){
+            let filtered = allTx;
+            const f = $('.filter-btn.active').data('filter');
+            if(f !== 'all') filtered = filtered.filter(tx => tx.type === f);
+            const term = $('#tx-search').val().toLowerCase();
+            if(term) filtered = filtered.filter(tx => tx.description.toLowerCase().includes(term) || (tx.fromTo||'').toLowerCase().includes(term));
+            renderTable(filtered);
+        }
+    </script>
+</body>
+</html>
